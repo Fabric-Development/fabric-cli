@@ -1,15 +1,18 @@
 # Maintainer: Yousef El-Darsh <yousef.eldarsh@gmail.com>
 
-pkgname="fabric-cli"
+pkgname="fabric-cli-git"
 pkgdesc="an alternative cli for fabric"
 url="https://github.com/Fabric-Development/fabric-cli"
-pkgver=0.0.2
 pkgrel=1
-arch=('x86_64')
+pkgver=0.0.2
 license=('AGPL3')
+provides=("fabric-cli")
+arch=('x86_64')
+source=("git+${url}.git")
 depends=('go')
 makedepends=('meson' 'ninja')
-source=("git+${url}.git")
+conflicts=('fabric-cli')
+
 sha256sums=('SKIP')
 
 build() {

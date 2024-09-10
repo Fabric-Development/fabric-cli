@@ -24,6 +24,9 @@ Additionally, You will need a Fabric environment already set. otherwise this uti
 
 ## Build and Install
 
+> [!NOTE]
+> For Arch users, a AUR package is proivded as `fabric-cli-git`.
+
 To build and install this utility, run the following command after cloning the repository:
 
 ```

@@ -39,3 +39,10 @@ install_data(
     rename: '_' + meson.project_name(),
     install_dir: 'share' / 'zsh' / 'site-functions'
 )
+
+# fish
+install_data(
+    autocompletions_dir / 'fish_autocomplete',
+    rename: meson.project_name() + '.fish',
+    install_dir: 'share' / 'fish' / 'completions'
+)

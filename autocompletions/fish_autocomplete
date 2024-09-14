@@ -1,0 +1,17 @@
+# FIXME: this thing barely works, also there's a lot of text processing going on here
+function __fish_fabric_cli_complete
+    set cur (commandline -cp)
+
+    if string match -r '^-' -- $cur
+        set completions (eval (commandline -co | string split ' ') --generate-bash-completion $cur)
+    else
+        set completions (eval (commandline -co | string split ' ') --generate-bash-completion)
+    end
+
+    for completion in (string split '\n' $completions)
+        set command_name (string split ':' $completion[1])
+        echo $command_name[1]
+    end
+end
+
+complete -c fabric-cli -f -a '(__fish_fabric_cli_complete)'

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/godbus/dbus/v5"
@@ -363,12 +366,28 @@ func autocompleteAction(ctx *cli.Context) {
 	}
 }
 
+func autocompleteStubs(ctx *cli.Context) {
+	files, err := filepath.Glob(GetGirLookupPath() + "/*.gir")
+	if err != nil {
+		return
+	}
+
+	for _, path := range files {
+		strippedName := strings.TrimSuffix(filepath.Base(path), ".gir")
+		if slices.Contains(ctx.Args().Slice(), strippedName) {
+			continue
+		}
+		fmt.Println(strippedName)
+	}
+}
+
 func main() {
 	instanceHelp := "instance: the name of the instance to execute this command on"
 	sourceHelp := "source: python source code to execute"
 	codeHelp := "code: python code to execute"
 	actionHelp := "action-name: the name of the desired action to run"
 	actionArgsHelp := "arguments: optional arguments to pass to the action handler function"
+	stubsReposHelp := "repositories: repositories needed for type generation, an example repository name would look like this `Gtk-3.0`, the syntax is `<NAME>-<VERSION>`."
 
 	jsonFlag := &cli.BoolFlag{
 		Name:    "json",
@@ -438,6 +457,40 @@ func main() {
 				ArgsUsage:    bakeArgsHelp(instanceHelp, actionHelp, actionArgsHelp),
 				BashComplete: autocompleteAction,
 				Action:       invokeAction,
+			},
+			{
+				Name:    "generate-stubs",
+				Usage:   "generate a stubs package for getting proper LSP typing on pygobject",
+				Aliases: []string{"gs", "stubs", "types"},
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "no-deps",
+						Usage: "do not resolve dependencies for the given list of repositories (why?)",
+					},
+					&cli.PathFlag{
+						Name:    "output",
+						Usage:   "path in where to save the generated stubs package, defualts to the sitepackages of the active python installation",
+						Aliases: []string{"o"},
+					},
+				},
+				Args:         true,
+				ArgsUsage:    bakeArgsHelp(stubsReposHelp),
+				BashComplete: autocompleteStubs,
+				Action: func(ctx *cli.Context) error {
+					noDeps := ctx.Bool("no-deps")
+					output := ctx.Path("output")
+					if len(strings.TrimSpace(output)) == 0 {
+						rawOut, err := exec.Command("python", "-c", `import site, os; sp = site.getsitepackages()[0]; print(sp if os.access(sp, os.W_OK | os.X_OK) else site.getusersitepackages(), end='')`).Output()
+						if err != nil {
+							panic(err)
+						}
+						output = string(rawOut)
+					}
+					fmt.Printf("types will be saved to: %s", output)
+
+					GenerateStubs(ctx.Args().Slice(), output+"/gi-stubs", noDeps)
+					return nil
+				},
 			},
 		},
 		Suggest:              true,

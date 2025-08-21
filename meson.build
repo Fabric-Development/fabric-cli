@@ -20,7 +20,7 @@ cli_target = custom_target(
     install: true,
     install_dir: get_option('bindir'),
     output: meson.project_name(),
-    command: [go_cc, 'build', '-v'] + extra_cc_flags + ['-o', '@OUTPUT@', sources_dir]
+    command: [go_cc, 'build', '-v'] + extra_cc_flags + ['-o', '@OUTPUT@', sources_dir / 'src']
 )
 
 

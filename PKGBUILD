@@ -9,10 +9,9 @@ license=('AGPL3')
 provides=("fabric-cli")
 arch=('x86_64')
 source=("git+${url}.git")
-depends=('go')
-makedepends=('meson' 'ninja')
+depends=()
+makedepends=('meson' 'ninja' 'go')
 conflicts=('fabric-cli')
-
 sha256sums=('SKIP')
 
 build() {

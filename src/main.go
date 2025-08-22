@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	FABRIC_DBUS_INTERFACE_NAME = "org.Fabric.fabric"
-	FABRIC_DBUS_OBJECT_PATH    = "/org/Fabric/fabric"
+	FabricDbusInterfaceName = "org.Fabric.fabric"
+	FabricDbusObjectPath    = "/org/Fabric/fabric"
 )
 
 func handleError(errorMessage string, json bool) {
@@ -82,16 +82,16 @@ func getInstanceProxy(ifaceName string) (dbus.BusObject, error) {
 		return nil, err
 	}
 
-	obj := conn.Object(ifaceName, dbus.ObjectPath(FABRIC_DBUS_OBJECT_PATH))
+	obj := conn.Object(ifaceName, dbus.ObjectPath(FabricDbusObjectPath))
 	return obj, nil
 }
 
 func checkAndGetInstanceProxy(configName string, errorJson bool) (dbus.BusObject, error) {
 	var ifaceName string
-	if strings.HasPrefix(configName, FABRIC_DBUS_INTERFACE_NAME) {
+	if strings.HasPrefix(configName, FabricDbusInterfaceName) {
 		ifaceName = configName
 	} else {
-		ifaceName = FABRIC_DBUS_INTERFACE_NAME
+		ifaceName = FabricDbusInterfaceName
 		if configName != "" {
 			ifaceName += "." + configName
 		}
@@ -114,7 +114,7 @@ func getRunningInstances() ([]string, error) {
 
 	filteredNames := []string{}
 	for _, name := range names {
-		if strings.HasPrefix(name, FABRIC_DBUS_INTERFACE_NAME) {
+		if strings.HasPrefix(name, FabricDbusInterfaceName) {
 			filteredNames = append(filteredNames, name)
 		}
 	}
@@ -136,7 +136,7 @@ func listAll(ctx *cli.Context) error {
 	}
 
 	for _, dbusName := range filteredNames {
-		configName := strings.TrimPrefix(dbusName, FABRIC_DBUS_INTERFACE_NAME+".")
+		configName := strings.TrimPrefix(dbusName, FabricDbusInterfaceName+".")
 		proxy, err := getInstanceProxy(dbusName)
 		if err != nil {
 			return err
@@ -340,7 +340,7 @@ func autocompleteInstance(ctx *cli.Context) {
 	}
 
 	for _, instance := range filteredNames {
-		fmt.Println(strings.TrimPrefix(instance, FABRIC_DBUS_INTERFACE_NAME+"."))
+		fmt.Println(strings.TrimPrefix(instance, FabricDbusInterfaceName+"."))
 	}
 }
 

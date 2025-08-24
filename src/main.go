@@ -401,6 +401,15 @@ func main() {
 		Version: "0.0.2",
 		Commands: []*cli.Command{
 			{
+				Name:    "init",
+				Usage:   "interactively create a new fabric configuration",
+				Aliases: []string{"initialize", "new"},
+				Action: func(ctx *cli.Context) error {
+					InitInteractive()
+					return nil
+				},
+			},
+			{
 				Name:    "list-all",
 				Usage:   "list all currently running fabric instances",
 				Aliases: []string{"la"},

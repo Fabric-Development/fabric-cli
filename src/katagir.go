@@ -124,10 +124,11 @@ func pyparams(p Parameters) string {
 	var params []string
 	firstOptionalIdx := -1
 	for i, param := range p.Parameters {
-		if param.Nullable == "1" {
-			firstOptionalIdx = i
-			break
+		if param.Nullable != "1" {
+			continue
 		}
+		firstOptionalIdx = i
+		break
 	}
 	for i, param := range p.Parameters {
 		if param.Name == "..." {
@@ -336,71 +337,80 @@ func parseGirFile(name, version string) (*Repository, error) {
 			switch elementName {
 			case "repository", "namespace": // toplevels
 			case "include":
-				if t.Name.Space != "http://www.gtk.org/introspection/c/1.0" {
-					repo.Includes = append(repo.Includes, Include{Name: getAttr(t, "name"), Version: getAttr(t, "version")})
+				if t.Name.Space == "http://www.gtk.org/introspection/c/1.0" {
+					break
 				}
+				repo.Includes = append(repo.Includes, Include{Name: getAttr(t, "name"), Version: getAttr(t, "version")})
 			case "class", "interface", "record":
 				class := Class{Name: getAttr(t, "name"), Parent: getAttr(t, "parent")}
 				repo.Namespace.Classes = append(repo.Namespace.Classes, class)
 				currentClass = &repo.Namespace.Classes[len(repo.Namespace.Classes)-1]
 				parentOfDoc = elementName
 			case "implements":
-				if currentClass != nil {
-					currentClass.Implements = append(currentClass.Implements, Implement{Name: getAttr(t, "name")})
+				if currentClass == nil {
+					break
 				}
+				currentClass.Implements = append(currentClass.Implements, Implement{Name: getAttr(t, "name")})
 			case "enumeration", "bitfield":
 				enum := Enumeration{Name: getAttr(t, "name")}
 				repo.Namespace.Enums = append(repo.Namespace.Enums, enum)
 				currentEnum = &repo.Namespace.Enums[len(repo.Namespace.Enums)-1]
 				parentOfDoc = elementName
 			case "member":
-				if currentEnum != nil {
-					member := Member{Name: getAttr(t, "name"), Value: getAttr(t, "value")}
-					currentEnum.Members = append(currentEnum.Members, member)
-					currentMember = &currentEnum.Members[len(currentEnum.Members)-1]
-					parentOfDoc = elementName
+				if currentEnum == nil {
+					break
 				}
+				member := Member{Name: getAttr(t, "name"), Value: getAttr(t, "value")}
+				currentEnum.Members = append(currentEnum.Members, member)
+				currentMember = &currentEnum.Members[len(currentEnum.Members)-1]
+				parentOfDoc = elementName
 			case "method", "virtual-method", "function", "constructor":
 				fn := Function{Name: getAttr(t, "name")}
-				if currentClass != nil {
-					switch elementName {
-					case "method":
-						currentClass.Methods = append(currentClass.Methods, fn)
-						currentFunc = &currentClass.Methods[len(currentClass.Methods)-1]
-					case "virtual-method":
-						currentClass.VirtualMethods = append(currentClass.VirtualMethods, fn)
-						currentFunc = &currentClass.VirtualMethods[len(currentClass.VirtualMethods)-1]
-					case "function":
-						currentClass.Functions = append(currentClass.Functions, fn)
-						currentFunc = &currentClass.Functions[len(currentClass.Functions)-1]
-					case "constructor":
-						currentClass.Constructor = fn
-						currentFunc = &currentClass.Constructor
-					}
-				} else {
+				if currentClass == nil {
 					repo.Namespace.Functions = append(repo.Namespace.Functions, fn)
 					currentFunc = &repo.Namespace.Functions[len(repo.Namespace.Functions)-1]
+					parentOfDoc = elementName
+					break
+				}
+
+				switch elementName {
+				case "method":
+					currentClass.Methods = append(currentClass.Methods, fn)
+					currentFunc = &currentClass.Methods[len(currentClass.Methods)-1]
+				case "virtual-method":
+					currentClass.VirtualMethods = append(currentClass.VirtualMethods, fn)
+					currentFunc = &currentClass.VirtualMethods[len(currentClass.VirtualMethods)-1]
+				case "function":
+					currentClass.Functions = append(currentClass.Functions, fn)
+					currentFunc = &currentClass.Functions[len(currentClass.Functions)-1]
+				case "constructor":
+					currentClass.Constructor = fn
+					currentFunc = &currentClass.Constructor
+
 				}
 				parentOfDoc = elementName
 			case "return-value":
-				if currentFunc != nil {
-					currentReturn = &currentFunc.ReturnValue
-					parentOfDoc = elementName
+				if currentFunc == nil {
+					break
 				}
+				currentReturn = &currentFunc.ReturnValue
+				parentOfDoc = elementName
 			case "property":
-				if currentClass != nil {
-					prop := Property{Name: getAttr(t, "name")}
-					currentClass.Properties = append(currentClass.Properties, prop)
-					currentProperty = &currentClass.Properties[len(currentClass.Properties)-1]
-					parentOfDoc = elementName
+				if currentClass == nil {
+					break
 				}
+				prop := Property{Name: getAttr(t, "name")}
+				currentClass.Properties = append(currentClass.Properties, prop)
+				currentProperty = &currentClass.Properties[len(currentClass.Properties)-1]
+				parentOfDoc = elementName
 			case "parameter":
-				if currentFunc != nil {
-					param := Parameter{Name: getAttr(t, "name"), Nullable: getAttr(t, "nullable")}
-					currentFunc.Parameters.Parameters = append(currentFunc.Parameters.Parameters, param)
-					currentParam = &currentFunc.Parameters.Parameters[len(currentFunc.Parameters.Parameters)-1]
-					parentOfDoc = elementName
+				if currentFunc == nil {
+					break
 				}
+				param := Parameter{Name: getAttr(t, "name"), Nullable: getAttr(t, "nullable")}
+				currentFunc.Parameters.Parameters = append(currentFunc.Parameters.Parameters, param)
+				currentParam = &currentFunc.Parameters.Parameters[len(currentFunc.Parameters.Parameters)-1]
+				parentOfDoc = elementName
 			case "type":
 				typeName := getAttr(t, "name")
 				switch {
@@ -419,33 +429,40 @@ func parseGirFile(name, version string) (*Repository, error) {
 			}
 			switch parentOfDoc {
 			case "class", "interface", "record":
-				if currentClass != nil {
-					currentClass.Doc = content
+				if currentClass == nil {
+					break
 				}
+				currentClass.Doc = content
 			case "method", "virtual-method", "function", "constructor":
-				if currentFunc != nil {
-					currentFunc.Doc = content
+				if currentFunc == nil {
+					break
 				}
+				currentFunc.Doc = content
 			case "enumeration", "bitfield":
-				if currentEnum != nil {
-					currentEnum.Doc = content
+				if currentEnum == nil {
+					break
 				}
+				currentEnum.Doc = content
 			case "member":
-				if currentMember != nil {
-					currentMember.Doc = content
+				if currentMember == nil {
+					break
 				}
+				currentMember.Doc = content
 			case "property":
-				if currentProperty != nil {
-					currentProperty.Doc = content
+				if currentProperty == nil {
+					break
 				}
+				currentProperty.Doc = content
 			case "parameter":
-				if currentParam != nil {
-					currentParam.Doc = content
+				if currentParam == nil {
+					break
 				}
+				currentParam.Doc = content
 			case "return-value":
-				if currentReturn != nil {
-					currentReturn.Doc = content
+				if currentReturn == nil {
+					break
 				}
+				currentReturn.Doc = content
 			}
 		case xml.EndElement:
 			switch t.Name.Local {
@@ -473,13 +490,15 @@ func parseGirFile(name, version string) (*Repository, error) {
 func transformNamespace(ns *Namespace) {
 	for i := range ns.Classes {
 		class := &ns.Classes[i]
-		if len(class.VirtualMethods) > 0 {
-			for _, vmethod := range class.VirtualMethods {
-				vmethod.Name = "do_" + vmethod.Name
-				class.Methods = append(class.Methods, vmethod)
-			}
-			class.VirtualMethods = nil
+		if len(class.VirtualMethods) == 0 {
+			continue
 		}
+
+		for _, vmethod := range class.VirtualMethods {
+			vmethod.Name = "do_" + vmethod.Name
+			class.Methods = append(class.Methods, vmethod)
+		}
+		class.VirtualMethods = nil
 	}
 	ns.Classes = topoSortClasses(ns.Classes)
 	for i := range ns.Enums {
@@ -492,11 +511,15 @@ func transformNamespace(ns *Namespace) {
 			memberNames[j] = member.Name
 		}
 		prefix := longestCommonPrefix(memberNames)
-		if lastUnderscore := strings.LastIndex(prefix, "_"); lastUnderscore != -1 {
-			prefix = prefix[:lastUnderscore+1]
-			for j := range enum.Members {
-				enum.Members[j].Name = strings.TrimPrefix(enum.Members[j].Name, prefix)
-			}
+
+		var lastUnderscore int
+		if lastUnderscore = strings.LastIndex(prefix, "_"); lastUnderscore == -1 {
+			continue
+		}
+
+		prefix = prefix[:lastUnderscore+1]
+		for j := range enum.Members {
+			enum.Members[j].Name = strings.TrimPrefix(enum.Members[j].Name, prefix)
 		}
 	}
 }
@@ -593,9 +616,10 @@ func longestCommonPrefix(strs []string) string {
 
 func getAttr(t xml.StartElement, name string) string {
 	for _, attr := range t.Attr {
-		if attr.Name.Local == name {
-			return attr.Value
+		if attr.Name.Local != name {
+			continue
 		}
+		return attr.Value
 	}
 	return ""
 }
